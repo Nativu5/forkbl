@@ -18,8 +18,14 @@ Find the generated `.zip` in the `build` directory.
 
 ## Usage
 
+For the first time, you need to install the protocol handler on your PC.
+
 ```powershell
 powershell ./scripts/install.ps1
 ```
 
 Then open the bastion host web page, it will call the `ForkBL.exe` to establish the connection.
+
+## Note
+
+This tool is released under study purpose only.
