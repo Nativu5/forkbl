@@ -1,4 +1,6 @@
 .vscode
+*.exe
+
 payload.json
 config.json
 build/
