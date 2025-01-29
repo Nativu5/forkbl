@@ -1,0 +1,9 @@
+{
+    "debug": false,
+    "options": [
+        "-o",
+        "HostKeyAlgorithms=+ssh-rsa",
+        "-o",
+        "PubkeyAcceptedAlgorithms=+ssh-rsa"
+    ]
+}
