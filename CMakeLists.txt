@@ -9,7 +9,13 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static libs" FORCE)
 # Define the executable
 add_executable(ForkBL main.cpp)
 
+# Install prefix
+if (WIN32 AND NOT DEFINED CMAKE_INSTALL_PREFIX)
+   set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/_install" CACHE PATH "Install prefix" FORCE)
+endif()
+
 # FetchContent for Zlib
+set(SKIP_INSTALL_ALL ON CACHE BOOL "Disable zlib installation" FORCE)
 include(FetchContent)
 FetchContent_Declare(
     zlib
@@ -40,4 +46,35 @@ elseif (APPLE)
 endif()
 
 # Add install rules
-install(TARGETS ForkBL RUNTIME DESTINATION bin)
+
+# Install ForkBL.exe to the top-level of the ZIP
+install(TARGETS ForkBL
+    RUNTIME DESTINATION .
+)
+
+# Install config.json to the top-level of the ZIP
+install(FILES
+    "${CMAKE_SOURCE_DIR}/etc/config.json"
+    DESTINATION .
+)
+
+# Install the entire scripts/ folder
+install(DIRECTORY
+    "${CMAKE_SOURCE_DIR}/scripts/"
+    DESTINATION scripts
+)
+
+# Basic package info
+set(CPACK_PACKAGE_NAME "ForkBL")
+set(CPACK_PACKAGE_VERSION "0.1.0")
+
+# Generate a .zip (you can add "TGZ" if you also want tar.gz)
+set(CPACK_GENERATOR "ZIP")
+
+# The final package file name, e.g. ForkBL-0.1.0-win64.zip
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-win64")
+
+# Optionally exclude a top-level directory inside the archive
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
+
+include(CPack)
