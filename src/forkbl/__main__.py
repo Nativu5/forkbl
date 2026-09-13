@@ -4,20 +4,21 @@ import argparse
 import sys
 
 from .client import ShtermClient
-from .config import configured_url
+from .config import configured_url, normalize_url
 from .session import clear_session, load_session
 from .ssh import run_ssh
 from .ui import console, error_console, print_targets
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="forkbl", description="Terminal client for the PKU bastion host")
-    parser.add_argument("--url", help="shterm base URL (overrides FORKBL_URL and .env)")
+    parser = argparse.ArgumentParser(prog="forkbl", description="Terminal client for a shterm bastion host")
     parser.add_argument("-v", "--verbose", action="count", default=0, help="show HTTP and SSH diagnostics")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("login", "targets"):
-        command_parser = sub.add_parser(name)
-        command_parser.add_argument("-v", "--verbose", action="count", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    login_parser = sub.add_parser("login")
+    login_parser.add_argument("--url", help="shterm base URL (overrides FORKBL_URL and .env)")
+    login_parser.add_argument("-v", "--verbose", action="count", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    targets_parser = sub.add_parser("targets")
+    targets_parser.add_argument("-v", "--verbose", action="count", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     ssh_parser = sub.add_parser("ssh")
     ssh_parser.add_argument("-v", "--verbose", action="count", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     ssh_parser.add_argument("device_id", type=int)
@@ -35,8 +36,8 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        base_url = configured_url(args.url)
         if args.command == "login":
+            base_url = configured_url(args.url)
             if base_url is None:
                 raise RuntimeError("a server URL is required for login; use --url, FORKBL_URL, or .env")
             _ensure_single_server(base_url)
@@ -51,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
             clear_session()
             console.print("Logged out.")
         else:
-            client = ShtermClient.from_saved(base_url=base_url, verbose=bool(args.verbose))
+            client = ShtermClient.from_saved(verbose=bool(args.verbose))
             if args.command == "targets":
                 print_targets(client.targets())
             elif args.command == "ssh":
@@ -90,7 +91,7 @@ def _ensure_single_server(base_url: str) -> None:
         saved_url, _ = load_session()
     except RuntimeError:
         return
-    if configured_url(base_url) != configured_url(saved_url):
+    if normalize_url(base_url) != normalize_url(saved_url):
         raise RuntimeError("already logged in to another server; run 'forkbl logout' first")
 
 if __name__ == "__main__":

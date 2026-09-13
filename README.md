@@ -1,9 +1,9 @@
 # ForkBL
 
-ForkBL is a terminal client for the PKU shterm bastion host. It logs in over
-HTTPS, lists visible devices, requests an SSH access URL, and starts the
-system OpenSSH client. The old Windows protocol-handler implementation is
-no longer required.
+ForkBL is a terminal client for a shterm bastion host. It logs in over HTTPS,
+lists visible devices, requests an SSH access URL, and starts the system
+OpenSSH client. The old Windows protocol-handler implementation is no longer
+required.
 
 ## Requirements
 
@@ -91,7 +91,7 @@ Connections intentionally discard host keys (`/dev/null` on Unix and `NUL` on
 Windows), accept the host key automatically, and enable legacy SSH algorithms
 required by older bastion deployments.
 
-Set the shterm base URL using `FORKBL_URL`:
+Set the shterm base URL when logging in using `FORKBL_URL`:
 
 ```sh
 export FORKBL_URL=https://bastion.example.com/shterm/
@@ -102,14 +102,16 @@ Alternatively, copy `.env.example` to `.env` in the directory where you run
 ForkBL and edit the URL. ForkBL reads that file without modifying the process
 environment. The `.env` file is excluded from Git.
 
-Precedence: `--url` > `FORKBL_URL` environment variable > `.env`. Pass `--url`
-before the subcommand for a single invocation:
+For `forkbl login`, URL precedence is `--url` > `FORKBL_URL` environment
+variable > `.env`. Pass `--url` to the `login` subcommand for a single
+invocation:
 
 ```sh
-forkbl --url https://bastion.example.com/shterm/ login
+forkbl login --url https://bastion.example.com/shterm/
 ```
 
 There is no built-in server URL. The first `forkbl login` must receive one of
 these settings. Subsequent commands use the server stored in the login
-session. A different server requires `forkbl logout` before logging in again;
-cookies from another server are never reused.
+session; their URL and environment settings are ignored. A different server
+requires `forkbl logout` before logging in again. Only one active session is
+stored at a time.

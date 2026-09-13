@@ -108,12 +108,10 @@ class ShtermClient:
             raise RuntimeError(f"logout failed (HTTP {response.status_code})")
 
     @classmethod
-    def from_saved(cls, base_url: str | None = None, verbose: bool = False) -> "ShtermClient":
+    def from_saved(cls, verbose: bool = False) -> "ShtermClient":
         from .session import load_session
 
         saved_url, cookies = load_session()
-        if base_url is not None and normalize_url(base_url) != normalize_url(saved_url):
-            raise RuntimeError("server URL changed; run 'forkbl login' for the configured server first")
         client = cls(saved_url, verbose=verbose)
         client.http.cookies.update(cookies)
         return client

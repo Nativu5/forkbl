@@ -1,7 +1,7 @@
 [project]
 name = "forkbl"
 version = "0.1.0"
-description = "Terminal client for the PKU bastion host"
+description = "Terminal client for a shterm bastion host"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
