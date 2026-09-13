@@ -4,3 +4,11 @@
 payload.json
 config.json
 build/
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+artifacts/
+.env
+.env.*
+!.env.example
