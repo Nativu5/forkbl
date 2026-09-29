@@ -12,7 +12,11 @@ required.
 - the system `ssh` command
 
 Windows uses the built-in Win32-OpenSSH client when it is available. For the
-interactive askpass flow, use OpenSSH 8.4 or newer so that
+remote-command PTY, Windows requires Windows 10 version 1809 or newer (or
+Windows Server 2019 or newer) and uses pywinpty with ConPTY. Linux and macOS
+use pexpect with a Unix PTY. The matching dependency is installed automatically.
+
+For the interactive askpass flow, use OpenSSH 8.4 or newer so that
 `SSH_ASKPASS_REQUIRE=force` is supported; the OpenSSH 8.1 bundled with some
 Windows 10 releases cannot force askpass while a console is attached.
 
@@ -115,3 +119,23 @@ these settings. Subsequent commands use the server stored in the login
 session; their URL and environment settings are ignored. A different server
 requires `forkbl logout` before logging in again. Only one active session is
 stored at a time.
+
+## Tests
+
+Run `uv sync --locked`, then `uv run --locked pytest -q -ra` on the target
+operating system. Shared tests always run. Native terminal tests are marked
+`windows` or `posix`; pytest skips the other platform automatically without
+importing its backend. WSL uses the Unix implementation, not the Windows one.
+
+To run only a platform's terminal checks:
+
+```sh
+uv run --locked pytest -m windows -q -ra  # native Windows
+uv run --locked pytest -m posix -q -ra    # Linux/macOS, including WSL
+```
+
+The native tests launch real local PTYs and verify command quoting, Unicode
+output, exit codes, timeouts, key forwarding, Ctrl-C, terminal resizing, and
+console-mode restoration. They use synthetic local processes and do not log in
+to a bastion. Keep separate Python environments when testing Windows and WSL;
+do not share the same .venv directory between operating systems.

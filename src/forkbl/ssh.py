@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import os
-import re
-import shlex
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-import pexpect
+from ._shell import run_shell_command as _run_shell_command
 
 
 def run_ssh(
@@ -120,75 +118,6 @@ def _ssh_environment(password: str, askpass: Path) -> dict[str, str]:
     # Do not let an agent socket change the requested password-only flow.
     env.pop("SSH_AUTH_SOCK", None)
     return env
-
-
-def _run_shell_command(command: list[str], env: dict[str, str], remote_command: list[str]) -> int:
-    """Run a command in the bastion shell while preserving full TTY behavior."""
-    child = pexpect.spawn(command[0], command[1:], env=env, encoding="utf-8", codec_errors="replace")
-    prompt = re.compile(r"(?m)^[^\r\n]*[#$%>] ?$")
-    marker = re.compile(r"__FORKBL_RC:(\d+)__")
-    marker_bytes = re.compile(rb"__FORKBL_RC:(\d+)__")
-    try:
-        child.expect(prompt, timeout=30)
-        _write_text(child.before + child.after)
-
-        command_text = shlex.join(remote_command)
-        # The gateway ignores SSH's exec request and always starts a shell.
-        # Run the requested command there, then propagate its status by
-        # exiting the forced shell. Keeping the PTY attached also supports
-        # full-screen programs such as vim, less, and top.
-        child.sendline(f"{command_text}; _forkbl_rc=$?; printf '\\n__FORKBL_RC:%s__\\n' \"$_forkbl_rc\"; exit $_forkbl_rc")
-        if sys.stdin.isatty():
-            result = {"code": None, "pending": b""}
-
-            def output_filter(data: bytes) -> bytes:
-                data = result["pending"] + data
-                found = marker_bytes.search(data)
-                if found:
-                    result["code"] = int(found.group(1))
-                    result["pending"] = b""
-                    start, end = found.span()
-                    return data[:start] + data[end:]
-                prefix = b"__FORKBL_RC:"
-                for length in range(min(len(prefix) - 1, len(data)), 0, -1):
-                    if data.endswith(prefix[:length]):
-                        result["pending"] = data[-length:]
-                        return data[:-length]
-                return data
-
-            child.interact(escape_character=None, output_filter=output_filter)
-            if result["pending"]:
-                _write_text(result["pending"].decode("utf-8", "replace"))
-            return_code = result["code"]
-        else:
-            # Piped callers have no local TTY for pexpect.interact(); the
-            # child still owns a PTY and will exit after the command.
-            child.expect(pexpect.EOF, timeout=300)
-            output = child.before
-            found = marker.search(output)
-            if found:
-                start, end = found.span()
-                _write_text(output[:start] + output[end:])
-                return_code = int(found.group(1))
-            else:
-                _write_text(output)
-                return_code = child.exitstatus
-        if return_code is None:
-            return_code = 1
-        return return_code
-    except KeyboardInterrupt:
-        child.terminate(force=True)
-        return 130
-    except (pexpect.EOF, pexpect.TIMEOUT) as exc:
-        raise RuntimeError("remote shell did not produce the expected prompt") from exc
-    finally:
-        if child.isalive():
-            child.terminate(force=True)
-
-
-def _write_text(value: str) -> None:
-    sys.stdout.write(value)
-    sys.stdout.flush()
 
 
 def _askpass_path() -> Path:
